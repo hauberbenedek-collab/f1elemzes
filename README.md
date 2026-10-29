@@ -89,4 +89,4 @@ _Futtatás után ide írd be a saját megállapításaidat mondatokban, a script
 
 ## Szerző
 
-Benedek
+Hauber Benedek
