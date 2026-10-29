@@ -26,8 +26,8 @@ Python szorgalmi feladat: egy Kaggle adatcsomag elemzése öt szabadon választo
 ## Telepítés és futtatás
 
 ```bash
-git clone <https://github.com/hauberbenedek-collab/f1elemzes.git>
-cd <f1elemzes>
+git clone https://github.com/hauberbenedek-collab/f1elemzes.git
+cd f1elemzes
 pip install -r requirements.txt
 python elemzes.py
 ```
@@ -56,32 +56,32 @@ A változókat standardizálom, így az együtthatók összehasonlíthatók. A s
 
 Egyszerűsítés: a csapat ereje a szezon összes futamából számolódik, így részben tartalmazza a vizsgált futam eredményét is.
 
-Ábra: `abrak/1_regresszio.png`
+![Regresszió: mi befolyásolja a végső helyezést](abrak/1_regresszio.png)
 
 ### 2. Melyik pályán számít a legjobban a rajtpozíció?
 
 2000 után, pályánként kiszámolom a rajtpozíció és a végső helyezés korrelációját (`np.corrcoef`), azokra a pályákra, ahol legalább kb. 10 futam adata van. A legerősebb és leggyengébb kapcsolatú pályák oszlopdiagramon látszanak.
 
-Ábra: `abrak/2_palyak.png`
+![Rajtpozíció és végső helyezés korrelációja pályánként](abrak/2_palyak.png)
 
 ### 3. Mennyit számít a csapat, és ki teljesít a legjobban a csapattársához képest?
 
 - **Csapathatás:** szóráselemzéssel megmutatom, hogy a futamonkénti pontszerzés varianciájának hány százalékát magyarázza az, hogy melyik csapatban ül a versenyző az adott évben.
 - **Csapattárs-összehasonlítás:** futamonként kiszámolom, hogy a versenyző hány ponttal szerez többet a csapattársa(i) átlagánál, majd versenyzőnként átlagolom (legalább 50 futam).
 
-Ábra: `abrak/3_csapattars.png`
+![Pontelőny a csapattárshoz képest](abrak/3_csapattars.png)
 
 ### 4. Hol nyer a legnagyobb eséllyel a pole pozícióból induló versenyző?
 
 2000 után pályánként kiszámolom, hogy a pole-ból (`grid == 1`) induló versenyzők hány százaléka nyerte meg a futamot (legalább 15 futam pályánként). Ezt összevetem a 2. kérdés korrelációs mérőszámával (`np.corrcoef`), hogy a két módszer ugyanazt mutatja-e. A script a Monacót külön is kiírja.
 
-Ábra: `abrak/4_pole.png`
+![Pole-győzelmi arány pályánként](abrak/4_pole.png)
 
 ### 5. Hogyan változott a csapatok dominanciája az évek során?
 
 Szezononként kiszámolom, hogy a legsikeresebb csapat a futamok hány százalékát nyerte (`groupby`, `idxmax`), és hány különböző versenyző nyert futamot. Két panelen ábrázolom, 5 éves mozgóátlaggal, és numpy maszkolással évtizedes átlagokat számolok. Végül korrelációt számolok a két mutató között.
 
-Ábra: `abrak/5_dominancia.png`
+![Csapatdominancia és győztesek sokfélesége](abrak/5_dominancia.png)
 
 ## Eredmények
 
