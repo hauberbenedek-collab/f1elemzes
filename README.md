@@ -26,8 +26,8 @@ Python szorgalmi feladat: egy Kaggle adatcsomag elemzése öt szabadon választo
 ## Telepítés és futtatás
 
 ```bash
-git clone <a-repo-url-je>
-cd <repo-mappa>
+git clone <https://github.com/hauberbenedek-collab/f1elemzes.git>
+cd <f1elemzes>
 pip install -r requirements.txt
 python elemzes.py
 ```
