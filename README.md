@@ -1,6 +1,6 @@
 # Formula 1 elemzés
 
-Python szorgalmi feladat: egy Kaggle adatcsomag elemzése három szabadon választott kérdés alapján.
+Python szorgalmi feladat: egy Kaggle adatcsomag elemzése öt szabadon választott kérdés alapján.
 
 ## Adatforrás
 
@@ -11,6 +11,7 @@ Python szorgalmi feladat: egy Kaggle adatcsomag elemzése három szabadon válas
   - `drivers.csv`: versenyzők nevei
   - `races.csv`: futamok, évszámok, dátumok, pályák
   - `circuits.csv`: pályák nevei
+  - `constructors.csv`: csapatok nevei
 - A script a `kagglehub` csomaggal automatikusan letölti az adatot.
 
 ## Használt könyvtárak
@@ -41,7 +42,7 @@ Az ábrák az `abrak/` mappába is mentésre kerülnek.
 - A `grid = 0` sorokat (bokszutcából rajtolók) kihagyom a rajtpozíciós elemzésekből.
 - A 2010 utáni évekre szűkítem a regressziót és a csapatelemzést, mert 2010 óta egységes a pontozási rendszer.
 
-## A három kérdés
+## Az öt kérdés
 
 ### 1. Mi határozza meg a végső helyezést: a rajtpozíció, a csapat ereje vagy a versenyző tapasztalata?
 
@@ -69,6 +70,18 @@ Egyszerűsítés: a csapat ereje a szezon összes futamából számolódik, így
 - **Csapattárs-összehasonlítás:** futamonként kiszámolom, hogy a versenyző hány ponttal szerez többet a csapattársa(i) átlagánál, majd versenyzőnként átlagolom (legalább 50 futam).
 
 Ábra: `abrak/3_csapattars.png`
+
+### 4. Hol nyer a legnagyobb eséllyel a pole pozícióból induló versenyző?
+
+2000 után pályánként kiszámolom, hogy a pole-ból (`grid == 1`) induló versenyzők hány százaléka nyerte meg a futamot (legalább 15 futam pályánként). Ezt összevetem a 2. kérdés korrelációs mérőszámával (`np.corrcoef`), hogy a két módszer ugyanazt mutatja-e. A script a Monacót külön is kiírja.
+
+Ábra: `abrak/4_pole.png`
+
+### 5. Hogyan változott a csapatok dominanciája az évek során?
+
+Szezononként kiszámolom, hogy a legsikeresebb csapat a futamok hány százalékát nyerte (`groupby`, `idxmax`), és hány különböző versenyző nyert futamot. Két panelen ábrázolom, 5 éves mozgóátlaggal, és numpy maszkolással évtizedes átlagokat számolok. Végül korrelációt számolok a két mutató között.
+
+Ábra: `abrak/5_dominancia.png`
 
 ## Eredmények
 

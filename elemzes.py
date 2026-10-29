@@ -3,12 +3,16 @@ Formula 1 elemzés, komplexebb kérdésekkel
 Kaggle adatcsomag: rohanrao/formula-1-world-championship-1950-2020
 
 Könyvtárak: pandas, numpy, matplotlib
-Három kérdés:
+Öt kérdés:
   1. Mi határozza meg a végső helyezést: a rajtpozíció, a csapat ereje
      vagy a versenyző tapasztalata? (többváltozós lineáris regresszió)
   2. Melyik pályán számít a legjobban a rajtpozíció? (korreláció pályánként)
   3. Mennyit számít a csapat, és kik teljesítenek a legjobban a csapattársukhoz
      képest? (szóráselemzés és csapattárs-összehasonlítás)
+  4. Hol nyer a legnagyobb eséllyel a pole pozícióból induló versenyző?
+     (győzelmi arány pályánként, összevetve a 2. kérdés korrelációjával)
+  5. Hogyan változott a csapatok dominanciája az évek során?
+     (a legjobb csapat győzelmi aránya és a különböző győztesek száma)
 """
 
 import os
@@ -20,6 +24,11 @@ import pandas as pd
 KAGGLE_NEV = "rohanrao/formula-1-world-championship-1950-2020"
 ABRA_MAPPA = "abrak"
 MODERN_KEZDET = 2010  # 2010-től egységes a pontozási rendszer
+
+
+def nevelo(ev):
+    """Névelő az évtizedhez: az 1950-es, a 2010-es."""
+    return "az" if ev < 2000 else "a"
 
 
 def adat_betoltes():
@@ -41,12 +50,13 @@ def adat_betoltes():
     versenyzok = olvas("drivers.csv")
     futamok = olvas("races.csv")
     palyak = olvas("circuits.csv")
+    csapatok = olvas("constructors.csv")
 
     print(f"Eredmények: {len(eredmenyek)} sor")
     print(f"Versenyzők: {len(versenyzok)} sor")
     print(f"Futamok: {len(futamok)} sor")
     print(f"Pályák: {len(palyak)} sor\n")
-    return eredmenyek, versenyzok, futamok, palyak
+    return eredmenyek, versenyzok, futamok, palyak, csapatok
 
 
 def elokeszites(eredmenyek, futamok):
@@ -145,16 +155,19 @@ def kerdes_2(adat, palyak):
     korr = pd.Series(korrelaciok).sort_values(ascending=False)
     nevek = palyak.set_index("circuitId")["name"]
 
-    n = min(8, len(korr) // 2)
-    kiemelt = pd.concat([korr.head(n), korr.tail(n)])
-    cimkek = [nevek.loc[i] for i in kiemelt.index]
-    szinek = ["tab:red"] * n + ["tab:blue"] * n
+    atlag = korr.mean()
+    cimkek = [nevek.loc[i] for i in korr.index]
+    # piros: az átlagnál erősebb, kék: az átlagnál gyengébb kapcsolat
+    szinek = ["tab:red" if v >= atlag else "tab:blue" for v in korr.values]
 
-    plt.figure(figsize=(11, 7))
-    plt.barh(cimkek, kiemelt.values, color=szinek)
+    plt.figure(figsize=(11, max(7, len(korr) * 0.35)))
+    plt.barh(cimkek, korr.values, color=szinek)
+    plt.axvline(atlag, color="black", linestyle="--", linewidth=0.8,
+                label=f"Átlag: {atlag:.2f}")
     plt.gca().invert_yaxis()
     plt.title("Rajtpozíció és végső helyezés korrelációja pályánként (2000 után)")
     plt.xlabel("Korrelációs együttható (r)")
+    plt.legend()
     plt.tight_layout()
     plt.savefig(os.path.join(ABRA_MAPPA, "2_palyak.png"), dpi=150)
     plt.show()
@@ -168,7 +181,15 @@ def kerdes_2(adat, palyak):
           f"(r = {korr.iloc[-1]:.2f}), itt a rajt kevésbé határozza meg "
           f"a végeredményt.")
     print(f"A pályák átlagos korrelációja r = {korr.mean():.2f}.")
+
+    # a Monaco külön említése, ha benne van az elemzésben
+    for palya_id, nev in nevek.items():
+        if "Monaco" in nev and palya_id in korr.index:
+            hely = list(korr.index).index(palya_id) + 1
+            print(f"A(z) {nev} pályán r = {korr.loc[palya_id]:.2f}, ez a "
+                  f"{len(korr)} pálya közül a(z) {hely}. legerősebb kapcsolat.")
     print()
+    return korr
 
 
 def kerdes_3(adat, versenyzok):
@@ -226,13 +247,123 @@ def kerdes_3(adat, versenyzok):
     print()
 
 
+def kerdes_4(adat, palyak, korr):
+    print("=" * 60)
+    print("4. KÉRDÉS: Hol nyer a legnagyobb eséllyel a pole-ból induló?")
+    print("=" * 60)
+
+    pole = adat[(adat["year"] >= 2000) & (adat["grid"] == 1)].copy()
+    pole["nyert"] = pole["positionOrder"] == 1
+
+    csoport = pole.groupby("circuitId")["nyert"].agg(["mean", "size"])
+    csoport = csoport[csoport["size"] >= 15]  # legalább 15 futam pályánként
+    pole_arany = (csoport["mean"] * 100).sort_values(ascending=False)
+
+    nevek = palyak.set_index("circuitId")["name"]
+    atlag = pole["nyert"].mean() * 100
+    cimkek = [nevek.loc[i] for i in pole_arany.index]
+    szinek = ["tab:red" if v >= atlag else "tab:blue" for v in pole_arany.values]
+
+    plt.figure(figsize=(11, max(7, len(pole_arany) * 0.35)))
+    plt.barh(cimkek, pole_arany.values, color=szinek)
+    plt.axvline(atlag, color="black", linestyle="--", linewidth=0.8,
+                label=f"Átlag: {atlag:.0f}%")
+    plt.gca().invert_yaxis()
+    plt.title("A pole pozícióból induló versenyzők győzelmi aránya pályánként (2000 után)")
+    plt.xlabel("Győzelmi arány (%)")
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig(os.path.join(ABRA_MAPPA, "4_pole.png"), dpi=150)
+    plt.show()
+
+    print(f"A pole-ból induló versenyzők átlagosan {atlag:.0f}%-a nyert "
+          f"2000 után.")
+    print(f"A legnagyobb esély a(z) {nevek.loc[pole_arany.index[0]]} "
+          f"pályán van ({pole_arany.iloc[0]:.0f}%), a legkisebb a(z) "
+          f"{nevek.loc[pole_arany.index[-1]]} pályán ({pole_arany.iloc[-1]:.0f}%).")
+
+    for palya_id, nev in nevek.items():
+        if "Monaco" in nev and palya_id in pole_arany.index:
+            hely = list(pole_arany.index).index(palya_id) + 1
+            print(f"A(z) {nev} pályán a pole-ból induló {pole_arany.loc[palya_id]:.0f}%"
+                  f"-ban nyer, ez a {len(pole_arany)} pálya közül a(z) {hely}. helyen áll.")
+
+    # összevetés a 2. kérdés korrelációjával
+    kozos = pole_arany.index.intersection(korr.index)
+    r = np.corrcoef(
+        pole_arany.loc[kozos].to_numpy(dtype=float),
+        korr.loc[kozos].to_numpy(dtype=float),
+    )[0, 1]
+    kapcsolat = "erősen összefügg" if r > 0.7 else "csak részben függ össze"
+    print(f"A pole-győzelmi arány és a 2. kérdés korrelációja pályánként "
+          f"r = {r:.2f}, tehát a két mérőszám {kapcsolat}.")
+    print()
+
+
+def kerdes_5(adat, csapatok):
+    print("=" * 60)
+    print("5. KÉRDÉS: Hogyan változott a csapatok dominanciája?")
+    print("=" * 60)
+
+    gyoztesek = adat[adat["positionOrder"] == 1]
+    futamok_szama = gyoztesek.groupby("year").size()
+
+    eves_csapat = gyoztesek.groupby(["year", "constructorId"]).size()
+    legjobb_db = eves_csapat.groupby(level="year").max()
+    legjobb_idx = eves_csapat.groupby(level="year").idxmax()
+
+    dominancia = legjobb_db / futamok_szama * 100
+    kulonbozo = gyoztesek.groupby("year")["driverId"].nunique()
+
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(11, 8), sharex=True)
+    ax1.plot(dominancia.index, dominancia.values, marker="o", markersize=3,
+             label="Éves érték")
+    ax1.plot(dominancia.index, dominancia.rolling(5, center=True).mean(),
+             color="red", label="5 éves átlag")
+    ax1.set_ylabel("A legjobb csapat győzelmi aránya (%)")
+    ax1.legend()
+    ax1.grid(alpha=0.3)
+    ax2.plot(kulonbozo.index, kulonbozo.values, marker="o", markersize=3,
+             color="tab:green")
+    ax2.set_ylabel("Különböző futamgyőztesek száma")
+    ax2.set_xlabel("Év")
+    ax2.grid(alpha=0.3)
+    fig.suptitle("Csapatdominancia és a győztesek sokfélesége évenként")
+    plt.tight_layout()
+    plt.savefig(os.path.join(ABRA_MAPPA, "5_dominancia.png"), dpi=150)
+    plt.show()
+
+    # évtizedes átlagok numpy maszkolással
+    evek = dominancia.index.to_numpy()
+    ertekek = dominancia.to_numpy()
+    for evtized in sorted(set((evek // 10) * 10)):
+        maszk = (evek >= evtized) & (evek < evtized + 10)
+        print(f"{nevelo(int(evtized)).capitalize()} {int(evtized)}-es években "
+              f"a legjobb csapat átlagosan a futamok "
+              f"{np.mean(ertekek[maszk]):.0f}%-át nyerte.")
+
+    csapat_nev = csapatok.set_index("constructorId")["name"]
+    for ev in dominancia.nlargest(3).index:
+        csapat = csapat_nev.loc[legjobb_idx.loc[ev][1]]
+        print(f"{ev}: a(z) {csapat} a futamok {dominancia.loc[ev]:.0f}%-át "
+              f"nyerte, ez a legdominánsabb szezonok egyike.")
+
+    r = np.corrcoef(dominancia.to_numpy(), kulonbozo.loc[dominancia.index].to_numpy())[0, 1]
+    print(f"A csapatdominancia és a különböző győztesek száma közti "
+          f"korreláció r = {r:.2f}, vagyis ahol egy csapat jobban uralkodik, "
+          f"ott {'kevesebb' if r < 0 else 'több'} különböző versenyző nyer.")
+    print()
+
+
 def main():
     os.makedirs(ABRA_MAPPA, exist_ok=True)
-    eredmenyek, versenyzok, futamok, palyak = adat_betoltes()
+    eredmenyek, versenyzok, futamok, palyak, csapatok = adat_betoltes()
     adat = elokeszites(eredmenyek, futamok)
     kerdes_1(adat)
-    kerdes_2(adat, palyak)
+    korr = kerdes_2(adat, palyak)
     kerdes_3(adat, versenyzok)
+    kerdes_4(adat, palyak, korr)
+    kerdes_5(adat, csapatok)
 
 
 if __name__ == "__main__":
