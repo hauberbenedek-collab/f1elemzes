@@ -83,10 +83,6 @@ Szezononként kiszámolom, hogy a legsikeresebb csapat a futamok hány százalé
 
 ![Csapatdominancia és győztesek sokfélesége](abrak/5_dominancia.png)
 
-## Eredmények
-
-_Futtatás után ide írd be a saját megállapításaidat mondatokban, a script kimenete alapján._
-
 ## Szerző
 
 Hauber Benedek
